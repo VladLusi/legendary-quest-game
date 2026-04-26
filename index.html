@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>LEGENDARY QUEST - МАГАЗИН</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+        body { background: linear-gradient(135deg, #0a0a2a, #1a1a4a); font-family: 'Orbitron', monospace; min-height: 100vh; padding: 15px; }
+        
+        .game-container { max-width: 650px; margin: 0 auto; }
+        
+        /* Карточки */
+        .game-card { background: rgba(5, 10, 25, 0.85); backdrop-filter: blur(20px); border-radius: 35px; border: 1px solid rgba(0, 200, 255, 0.6); box-shadow: 0 20px 40px rgba(0,0,0,0.5); overflow: hidden; margin-bottom: 15px; }
+        
+        .header-stats { background: linear-gradient(135deg, rgba(10,15,35,0.95), rgba(5,10,25,0.95)); padding: 15px 20px; border-bottom: 2px solid #00aaff; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+        .stat-badge { background: rgba(0,0,0,0.8); border-radius: 50px; padding: 8px 16px; display: inline-flex; align-items: center; gap: 8px; border: 1px solid #00aaff; color: #fff; }
+        
+        /* Магазин */
+        .shop-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+        .shop-timer { background: linear-gradient(135deg, #ffa502, #ff6348); border-radius: 30px; padding: 10px 20px; color: #fff; font-weight: bold; font-family: monospace; font-size: 18px; }
+        
+        .merchant-card { background: linear-gradient(135deg, rgba(0,50,100,0.6), rgba(0,20,50,0.4)); border-radius: 20px; padding: 15px; display: flex; align-items: center; gap: 15px; margin-bottom: 20px; }
+        .merchant-emoji { font-size: 60px; animation: bounce 2s ease infinite; }
+        @keyframes bounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+        .merchant-text { color: #fff; font-size: 14px; flex: 1; }
+        
+        .shop-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; max-height: 450px; overflow-y: auto; padding: 5px; }
+        .shop-item { background: linear-gradient(135deg, #1a1a3a, #2a2a4a); border-radius: 20px; padding: 15px; text-align: center; cursor: pointer; transition: all 0.3s; border: 1px solid #00aaff; }
+        .shop-item:hover { transform: translateY(-3px); box-shadow: 0 0 20px #00aaff; }
+        .shop-item-emoji { font-size: 48px; display: block; margin-bottom: 10px; }
+        .shop-item-name { font-size: 14px; font-weight: bold; color: #00aaff; }
+        .shop-item-price { font-size: 12px; color: #fff; margin-top: 5px; }
+        .shop-item-stats { font-size: 11px; color: #ffaa00; margin-top: 5px; }
+        
+        .nav-tabs { display: flex; gap: 10px; margin-top: 15px; }
+        .nav-btn { flex: 1; background: rgba(0,0,0,0.7); border: 1px solid #00aaff; border-radius: 50px; padding: 12px; text-align: center; color: #fff; cursor: pointer; font-family: 'Orbitron', monospace; transition: all 0.3s; }
+        .nav-btn.active { background: linear-gradient(135deg, #00aaff, #0088cc); box-shadow: 0 0 15px #00aaff; }
+        
+        .toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: #1a1a3a; border: 1px solid #00aaff; color: #00aaff; padding: 12px 24px; border-radius: 50px; z-index: 1000; animation: fade 2.5s forwards; }
+        @keyframes fade { 0% { opacity: 0; transform: translateX(-50%) translateY(30px); } 15% { opacity: 1; transform: translateX(-50%) translateY(0); } 85% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
+        
+        .panel { display: none; }
+        .panel.active { display: block; }
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    <!-- Шапка -->
+    <div class="game-card">
+        <div class="header-stats">
+            <div class="stat-badge"><i class="fas fa-crown"></i> УРОВЕНЬ <span id="level">1</span></div>
+            <div class="stat-badge"><i class="fas fa-coins"></i> <span id="gold">100</span>💰</div>
+            <div class="stat-badge"><i class="fas fa-dungeon"></i> ЭТАЖ <span id="floor">1</span></div>
+        </div>
+    </div>
+
+    <!-- ПАНЕЛЬ БОЯ -->
+    <div id="battlePanel" class="panel active">
+        <div class="game-card">
+            <div style="padding: 20px; text-align: center;">
+                <div style="font-size: 60px;" id="enemyEmoji">🐺</div>
+                <div style="font-size: 24px; font-weight: bold; color: #ff6666;" id="enemyName">ВОЛК</div>
+                <div class="hp-bar-container" style="background: #333; border-radius: 20px; height: 25px; margin: 15px 0;">
+                    <div id="enemyHpBar" style="background: linear-gradient(90deg, #ff4444, #ff8888); width: 100%; height: 100%; border-radius: 20px; display: flex; align-items: center; justify-content: center; color: white; font-size: 12px;">100%</div>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 15px 0;">
+                    <div style="background: rgba(0,0,0,0.5); border-radius: 15px; padding: 10px;"><div style="font-size: 24px; font-weight: bold;" id="playerHp">100</div><div>❤️ HP</div></div>
+                    <div style="background: rgba(0,0,0,0.5); border-radius: 15px; padding: 10px;"><div style="font-size: 24px; font-weight: bold;" id="playerMana">50</div><div>💙 МАНА</div></div>
+                    <div style="background: rgba(0,0,0,0.5); border-radius: 15px; padding: 10px;"><div style="font-size: 24px; font-weight: bold;" id="playerAtk">15</div><div>⚔️ АТАКА</div></div>
+                    <div style="background: rgba(0,0,0,0.5); border-radius: 15px; padding: 10px;"><div style="font-size: 24px; font-weight: bold;" id="playerDef">10</div><div>🛡️ ЗАЩИТА</div></div>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 15px;">
+                    <div style="background: rgba(0,0,0,0.5); border-radius: 12px; padding: 8px;"><span style="font-size: 20px;">🗡️</span><br><span id="weapon">Деревянный меч</span></div>
+                    <div style="background: rgba(0,0,0,0.5); border-radius: 12px; padding: 8px;"><span style="font-size: 20px;">🛡️</span><br><span id="armor">Кожаная броня</span></div>
+                    <div style="background: rgba(0,0,0,0.5); border-radius: 12px; padding: 8px;"><span style="font-size: 20px;">💍</span><br><span id="ring">Простое кольцо</span></div>
+                </div>
+                <div class="nav-tabs">
+                    <button class="nav-btn" onclick="attack()" style="background: #ff4757;">⚔️ АТАКА</button>
+                    <button class="nav-btn" onclick="heavyAttack()" style="background: #ffa502;">💪 СИЛЬНЫЙ</button>
+                    <button class="nav-btn" onclick="defend()" style="background: #1e90ff;">🛡️ ЗАЩИТА</button>
+                    <button class="nav-btn" onclick="heal()" style="background: #2ed573;">💊 ЛЕЧЕНИЕ</button>
+                    <button class="nav-btn" onclick="run()" style="background: #747d8c;">🏃 СБЕЖАТЬ</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ПАНЕЛЬ МАГАЗИНА -->
+    <div id="shopPanel" class="panel">
+        <div class="game-card">
+            <div style="padding: 20px;">
+                <div class="shop-header">
+                    <h3 style="color: #00aaff;"><i class="fas fa-store"></i> ЛАВКА ТОРГОВЦА</h3>
+                    <div class="shop-timer" id="shopTimer">24:00:00</div>
+                </div>
+                <div class="merchant-card">
+                    <div class="merchant-emoji">🧙‍♂️✨</div>
+                    <div class="merchant-text">"Приветствую, путник! Мой ассортимент обновляется каждые 24 часа. Выбирай, что по душе!"</div>
+                </div>
+                <div class="shop-grid" id="shopGrid"></div>
+                <div class="nav-tabs" style="margin-top: 20px;">
+                    <button class="nav-btn" onclick="showPanel('battle')">◀️ НАЗАД В БОЙ</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ПАНЕЛЬ ГЕРОЯ -->
+    <div id="heroPanel" class="panel">
+        <div class="game-card">
+            <div style="padding: 20px;">
+                <h3 style="color: #00aaff; margin-bottom: 15px;"><i class="fas fa-user-astronaut"></i> ХАРАКТЕРИСТИКИ</h3>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                    <div class="stat-badge">⭐ УРОВЕНЬ: <strong id="statLevel">1</strong></div>
+                    <div class="stat-badge">✨ ОПЫТ: <span id="statXp">0</span>/<span id="statXpNext">100</span></div>
+                    <div class="stat-badge">❤️ HP: <span id="statHp">100</span>/<span id="statMaxHp">100</span></div>
+                    <div class="stat-badge">💙 МАНА: <span id="statMana">50</span>/<span id="statMaxMana">50</span></div>
+                    <div class="stat-badge">💰 ЗОЛОТО: <span id="statGold">100</span></div>
+                    <div class="stat-badge">⚔️ АТАКА: <span id="statAtk">15</span></div>
+                    <div class="stat-badge">🛡️ ЗАЩИТА: <span id="statDef">10</span></div>
+                    <div class="stat-badge">🗺️ ЭТАЖ: <span id="statFloor">1</span></div>
+                    <div class="stat-badge">👑 ПОБЕД НАД БОССАМИ: <span id="statBosses">0</span></div>
+                </div>
+                <div class="nav-tabs" style="margin-top: 20px;">
+                    <button class="nav-btn" onclick="showPanel('battle')">◀️ НАЗАД В БОЙ</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="nav-tabs">
+        <div class="nav-btn active" onclick="showPanel('battle')">⚔️ БОЙ</div>
+        <div class="nav-btn" onclick="loadShop()">🏪 МАГАЗИН</div>
+        <div class="nav-btn" onclick="showPanel('hero')">📊 ГЕРОЙ</div>
+    </div>
+</div>
+
+<script>
+    // ==================== ТОВАРЫ В МАГАЗИНЕ ====================
+    const WEAPONS = {
+        "Деревянный меч": { atk: 5, price: 100, emoji: "🪵", desc: "+5 атаки" },
+        "Каменный меч": { atk: 10, price: 250, emoji: "🪨", desc: "+10 атаки" },
+        "Железный меч": { atk: 20, price: 500, emoji: "⚙️", desc: "+20 атаки" },
+        "Стальной меч": { atk: 35, price: 1000, emoji: "⚔️", desc: "+35 атаки" },
+        "Мифриловый меч": { atk: 50, price: 2000, emoji: "✨", desc: "+50 атаки" },
+        "Легендарный меч": { atk: 85, price: 5000, emoji: "👑", desc: "+85 атаки" },
+        "Клинок дракона": { atk: 130, price: 10000, emoji: "🐲", desc: "+130 атаки" },
+        "Клинок богов": { atk: 200, price: 20000, emoji: "⚡", desc: "+200 атаки" }
+    };
+    
+    const ARMORS = {
+        "Кожаная броня": { def: 5, price: 150, emoji: "🧥", desc: "+5 защиты" },
+        "Кольчужная броня": { def: 10, price: 300, emoji: "⛓️", desc: "+10 защиты" },
+        "Стальная броня": { def: 20, price: 600, emoji: "🛡️", desc: "+20 защиты" },
+        "Мифриловая броня": { def: 35, price: 1600, emoji: "💎", desc: "+35 защиты" },
+        "Драконья броня": { def: 55, price: 3800, emoji: "🐉", desc: "+55 защиты" },
+        "Небесная броня": { def: 80, price: 7500, emoji: "✨", desc: "+80 защиты" },
+        "Броня богов": { def: 120, price: 16000, emoji: "👑", desc: "+120 защиты" }
+    };
+    
+    const RINGS = {
+        "Простое кольцо": { atk: 3, price: 100, emoji: "💍", desc: "+3 атаки" },
+        "Кольцо силы": { atk: 12, price: 600, emoji: "💪", desc: "+12 атаки" },
+        "Кровавое кольцо": { atk: 25, price: 1600, emoji: "❤️", desc: "+25 атаки" },
+        "Кольцо дракона": { atk: 42, price: 3800, emoji: "🐲", desc: "+42 атаки" },
+        "Кольцо бессмертия": { atk: 65, price: 7500, emoji: "✨", desc: "+65 атаки" },
+        "Кольцо богов": { atk: 100, price: 16000, emoji: "⚡", desc: "+100 атаки" }
+    };
+    
+    const POTIONS = [
+        { name: "Зелье здоровья", emoji: "💚", price: 50, effect: "heal", value: 50, desc: "Восстанавливает 50 HP" },
+        { name: "Большое зелье", emoji: "💚💚", price: 120, effect: "heal", value: 100, desc: "Восстанавливает 100 HP" },
+        { name: "Зелье маны", emoji: "💙", price: 60, effect: "mana", value: 30, desc: "Восстанавливает 30 маны" },
+        { name: "Эликсир жизни", emoji: "❤️‍🔥", price: 350, effect: "heal", value: 250, desc: "Восстанавливает 250 HP" }
+    ];
+    
+    // Монстры
+    const MONSTERS = {
+        1: { name: "🐀 Крыса", emoji: "🐀", hp: 35, dmg: 6, xp: 12, gold: 18 },
+        2: { name: "🐺 Волк", emoji: "🐺", hp: 60, dmg: 10, xp: 25, gold: 35 },
+        3: { name: "🧟 Гоблин", emoji: "🧟", hp: 85, dmg: 15, xp: 40, gold: 60 },
+        4: { name: "🗿 Орк", emoji: "🗿", hp: 120, dmg: 22, xp: 65, gold: 95 },
+        5: { name: "🐉 Огр", emoji: "🐉", hp: 180, dmg: 30, xp: 100, gold: 150 }
+    };
+    
+    const BOSSES = {
+        5: { name: "👑 Король гоблинов", emoji: "👑", hp: 450, dmg: 45, xp: 350, gold: 800 },
+        10: { name: "🐲 Дракон пустоши", emoji: "🐲", hp: 800, dmg: 70, xp: 700, gold: 1800 },
+        15: { name: "⚡ Повелитель молний", emoji: "⚡", hp: 1300, dmg: 100, xp: 1200, gold: 3500 },
+        20: { name: "💀 Архидемон", emoji: "💀", hp: 2000, dmg: 140, xp: 1800, gold: 6000 }
+    };
+    
+    // ==================== ИГРОК ====================
+    let player = {
+        level: 1, xp: 0, hp: 100, maxHp: 100, mana: 50, maxMana: 50, gold: 100,
+        weapon: "Деревянный меч", armor: "Кожаная броня", ring: "Простое кольцо",
+        floor: 1, bosses: 0, totalKills: 0, maxGold: 100, totalDamage: 0
+    };
+    
+    let currentEnemy = null;
+    let defendMode = false;
+    let combo = 0;
+    let comboTimeout = null;
+    let shopItems = [];
+    let lastShopUpdate = 0;
+    
+    // Загрузка сохранений
+    function loadSave() {
+        try {
+            if (localStorage.getItem('playerLevel')) player.level = parseInt(localStorage.getItem('playerLevel'));
+            if (localStorage.getItem('playerXp')) player.xp = parseInt(localStorage.getItem('playerXp'));
+            if (localStorage.getItem('playerHp')) player.hp = parseInt(localStorage.getItem('playerHp'));
+            if (localStorage.getItem('playerMaxHp')) player.maxHp = parseInt(localStorage.getItem('playerMaxHp'));
+            if (localStorage.getItem('playerMana')) player.mana = parseInt(localStorage.getItem('playerMana'));
+            if (localStorage.getItem('playerMaxMana')) player.maxMana = parseInt(localStorage.getItem('playerMaxMana'));
+            if (localStorage.getItem('playerGold')) player.gold = parseInt(localStorage.getItem('playerGold'));
+            if (localStorage.getItem('playerWeapon')) player.weapon = localStorage.getItem('playerWeapon');
+            if (localStorage.getItem('playerArmor')) player.armor = localStorage.getItem('playerArmor');
+            if (localStorage.getItem('playerRing')) player.ring = localStorage.getItem('playerRing');
+            if (localStorage.getItem('playerFloor')) player.floor = parseInt(localStorage.getItem('playerFloor'));
+            if (localStorage.getItem('playerBosses')) player.bosses = parseInt(localStorage.getItem('playerBosses'));
+            if (localStorage.getItem('playerKills')) player.totalKills = parseInt(localStorage.getItem('playerKills'));
+            if (localStorage.getItem('playerMaxGold')) player.maxGold = parseInt(localStorage.getItem('playerMaxGold'));
+            if (localStorage.getItem('playerTotalDamage')) player.totalDamage = parseInt(localStorage.getItem('playerTotalDamage'));
+        } catch(e) {}
+    }
+    loadSave();
+    
+    function saveGame() {
+        localStorage.setItem('playerLevel', player.level);
+        localStorage.setItem('playerXp', player.xp);
+        localStorage.setItem('playerHp', player.hp);
+        localStorage.setItem('playerMaxHp', player.maxHp);
+        localStorage.setItem('playerMana', player.mana);
+        localStorage.setItem('playerMaxMana', player.maxMana);
+        localStorage.setItem('playerGold', player.gold);
+        localStorage.setItem('playerWeapon', player.weapon);
+        localStorage.setItem('playerArmor', player.armor);
+        localStorage.setItem('playerRing', player.ring);
+        localStorage.setItem('playerFloor', player.floor);
+        localStorage.setItem('playerBosses', player.bosses);
+        localStorage.setItem('playerKills', player.totalKills);
+        localStorage.setItem('playerMaxGold', player.maxGold);
+        localStorage.setItem('playerTotalDamage', player.totalDamage);
+    }
+    
+    function getPlayerAtk() { return 10 + (WEAPONS[player.weapon]?.atk || 5) + (RINGS[player.ring]?.atk || 3); }
+    function getPlayerDef() { return 5 + (ARMORS[player.armor]?.def || 5); }
+    
+    function showNotification(msg, isError = false) {
+        const div = document.createElement('div');
+        div.className = 'toast';
+        div.innerHTML = `<i class="fas ${isError ? 'fa-skull' : 'fa-crown'}"></i> ${msg}`;
+        div.style.color = isError ? '#ff6666' : '#00aaff';
+        document.body.appendChild(div);
+        setTimeout(() => div.remove(), 2500);
+    }
+    
+    function updateUI() {
+        document.getElementById('level').innerText = player.level;
+        document.getElementById('gold').innerText = player.gold;
+        document.getElementById('floor').innerText = player.floor;
+        document.getElementById('playerHp').innerText = player.hp;
+        document.getElementById('playerMana').innerText = player.mana;
+        document.getElementById('playerAtk').innerText = getPlayerAtk();
+        document.getElementById('playerDef').innerText = getPlayerDef();
+        document.getElementById('weapon').innerText = player.weapon;
+        document.getElementById('armor').innerText = player.armor;
+        document.getElementById('ring').innerText = player.ring;
+        document.getElementById('statLevel').innerText = player.level;
+        document.getElementById('statXp').innerText = player.xp;
+        document.getElementById('statXpNext').innerText = player.level * 100;
+        document.getElementById('statHp').innerText = player.hp;
+        document.getElementById('statMaxHp').innerText = player.maxHp;
+        document.getElementById('statMana').innerText = player.mana;
+        document.getElementById('statMaxMana').innerText = player.maxMana;
+        document.getElementById('statGold').innerText = player.gold;
+        document.getElementById('statAtk').innerText = getPlayerAtk();
+        document.getElementById('statDef').innerText = getPlayerDef();
+        document.getElementById('statFloor').innerText = player.floor;
+        document.getElementById('statBosses').innerText = player.bosses;
+        if (currentEnemy) {
+            let percent = (currentEnemy.hp / currentEnemy.maxHp) * 100;
+            document.getElementById('enemyHpBar').style.width = percent + '%';
+            document.getElementById('enemyHpBar').innerHTML = `${Math.round(percent)}%`;
+            document.getElementById('enemyName').innerHTML = currentEnemy.name;
+            document.getElementById('enemyEmoji').innerHTML = currentEnemy.emoji;
+        }
+    }
+    
+    function generateEnemy() {
+        let floor = player.floor;
+        if (floor % 5 === 0 && BOSSES[floor]) {
+            let b = BOSSES[floor];
+            let bonus = Math.floor(floor / 5) * 25;
+            return { name: b.name, emoji: b.emoji, hp: b.hp + bonus, maxHp: b.hp + bonus, dmg: b.dmg + Math.floor(bonus/2), xp: b.xp + floor*10, gold: b.gold + floor*30, isBoss: true };
+        } else {
+            let level = Math.min(Math.floor(floor/5)+1, 5);
+            let m = MONSTERS[level];
+            let bonus = floor * 5;
+            return { name: m.name, emoji: m.emoji, hp: m.hp + bonus, maxHp: m.hp + bonus, dmg: m.dmg + Math.floor(bonus/5), xp: m.xp + floor*3, gold: m.gold + floor*3, isBoss: false };
+        }
+    }
+    
+    function startNewBattle() {
+        currentEnemy = generateEnemy();
+        defendMode = false;
+        updateUI();
+        combo = 0;
+        if (comboTimeout) clearTimeout(comboTimeout);
+        showNotification(`⚔️ ПОЯВИЛСЯ ${currentEnemy.name}! ⚔️`);
+    }
+    
+    function levelUp() {
+        while (player.xp >= player.level * 100) {
+            player.xp -= player.level * 100;
+            player.level++;
+            player.maxHp += 35;
+            player.hp = player.maxHp;
+            player.maxMana += 25;
+            player.mana = player.maxMana;
+            updateUI();
+            showNotification(`🎉 ПОВЫШЕНИЕ УРОВНЯ ${player.level}! +35 HP, +25 MANA! 🎉`);
+        }
+        saveGame();
+    }
+    
+    function applyDamage(damage, isCrit) {
+        let finalDamage = Math.max(1, damage - Math.floor(getPlayerDef() / 4));
+        if (isCrit) finalDamage = Math.floor(finalDamage * 1.6);
+        currentEnemy.hp -= finalDamage;
+        if (currentEnemy.hp <= 0) {
+            player.gold += currentEnemy.gold;
+            player.xp += currentEnemy.xp;
+            player.totalKills++;
+            player.totalDamage += finalDamage;
+            if (player.gold > player.maxGold) player.maxGold = player.gold;
+            if (currentEnemy.isBoss) {
+                player.floor++;
+                player.bosses++;
+                showNotification(`🎉 БОСС ПОВЕРЖЕН! ПЕРЕХОД НА ${player.floor} ЭТАЖ! 🎉`);
+            } else {
+                showNotification(`🎉 ПОБЕДА! +${currentEnemy.gold}💰 +${currentEnemy.xp}✨`);
+            }
+            levelUp();
+            startNewBattle();
+            updateUI();
+            saveGame();
+            return true;
+        }
+        return false;
+    }
+    
+    function enemyAttack() {
+        let damage = currentEnemy.dmg;
+        if (defendMode) { damage = Math.floor(damage / 2); defendMode = false; }
+        let finalDamage = Math.max(1, damage - Math.floor(getPlayerDef() / 6));
+        player.hp -= finalDamage;
+        if (player.hp <= 0) {
+            player.hp = 0;
+            updateUI();
+            showNotification(`💀 ВЫ ПОВЕРЖЕНЫ! ВОССТАНОВИТЕСЬ В МАГАЗИНЕ! 💀`, true);
+            return true;
+        }
+        showNotification(`🩸 ${currentEnemy.name} АТАКУЕТ! -${finalDamage} HP!`);
+        return false;
+    }
+    
+    function attack() {
+        if (!currentEnemy) startNewBattle();
+        let damage = Math.floor(Math.random() * getPlayerAtk()) + Math.floor(getPlayerAtk() / 2);
+        let isCrit = Math.random() < 0.15;
+        let died = applyDamage(damage, isCrit);
+        if (!died) { let playerDied = enemyAttack(); if (playerDied) { updateUI(); return; } }
+        updateUI();
+        saveGame();
+        combo++;
+        if (combo >= 2) showNotification(`${combo}x COMBO!`, false);
+        if (comboTimeout) clearTimeout(comboTimeout);
+        comboTimeout = setTimeout(() => { combo = 0; }, 3000);
+    }
+    
+    function heavyAttack() {
+        if (!currentEnemy) startNewBattle();
+        if (player.mana >= 35) {
+            let damage = Math.floor(Math.random() * getPlayerAtk() * 1.9) + getPlayerAtk();
+            player.mana -= 35;
+            let isCrit = Math.random() < 0.3;
+            let died = applyDamage(damage, isCrit);
+            if (!died) { let playerDied = enemyAttack(); if (playerDied) { updateUI(); return; } }
+            updateUI();
+        } else { showNotification(`❌ НЕДОСТАТОЧНО МАНЫ! НУЖНО 35!`, true); }
+        saveGame();
+    }
+    
+    function defend() {
+        if (!currentEnemy) startNewBattle();
+        if (player.mana >= 20) {
+            defendMode = true;
+            player.mana -= 20;
+            updateUI();
+            showNotification(`🛡️ АКТИВИРОВАНА ЗАЩИТА!`);
+            let playerDied = enemyAttack();
+            if (playerDied) updateUI();
+        } else { showNotification(`❌ НЕДОСТАТОЧНО МАНЫ! НУЖНО 20!`, true); }
+        saveGame();
+    }
+    
+    function heal() {
+        if (!currentEnemy) startNewBattle();
+        if (player.mana >= 45) {
+            let healAmount = Math.floor(Math.random() * 70) + 50;
+            player.hp = Math.min(player.hp + healAmount, player.maxHp);
+            player.mana -= 45;
+            updateUI();
+            showNotification(`💚 ВОССТАНОВЛЕНО ${healAmount} HP!`);
+            let playerDied = enemyAttack();
+            if (playerDied) updateUI();
+        } else { showNotification(`❌ НЕДОСТАТОЧНО МАНЫ! НУЖНО 45!`, true); }
+        saveGame();
+    }
+    
+    function run() {
+        if (!currentEnemy) startNewBattle();
+        if (Math.random() < 0.4) {
+            showNotification(`🏃 ВЫ СБЕЖАЛИ! НОВЫЙ ПРОТИВНИК...`);
+            startNewBattle();
+            updateUI();
+        } else {
+            showNotification(`😰 НЕ УДАЛОСЬ СБЕЖАТЬ!`, true);
+            let playerDied = enemyAttack();
+            if (playerDied) updateUI();
+        }
+        saveGame();
+    }
+    
+    // ==================== МАГАЗИН (ОБНОВЛЕНИЕ 24 ЧАСА) ====================
+    function updateShopTimer() {
+        const now = Date.now();
+        const nextReset = (Math.floor(now / 86400000) + 1) * 86400000;
+        const diff = nextReset - now;
+        const hours = Math.floor(diff / 3600000);
+        const minutes = Math.floor((diff % 3600000) / 60000);
+        const seconds = Math.floor((diff % 60000) / 1000);
+        const timerEl = document.getElementById('shopTimer');
+        if (timerEl) timerEl.textContent = `${hours.toString().padStart(2,'0')}:${minutes.toString().padStart(2,'0')}:${seconds.toString().padStart(2,'0')}`;
+    }
+    
+    function updateShop() {
+        const now = Date.now();
+        const today = Math.floor(now / 86400000);
+        if (lastShopUpdate !== today) {
+            lastShopUpdate = today;
+            shopItems = [];
+            const weaponNames = Object.keys(WEAPONS);
+            const shuffledWeapons = [...weaponNames];
+            for (let i = shuffledWeapons.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [shuffledWeapons[i], shuffledWeapons[j]] = [shuffledWeapons[j], shuffledWeapons[i]]; }
+            for (let i = 0; i < Math.min(4, shuffledWeapons.length); i++) shopItems.push({ type: "weapon", name: shuffledWeapons[i], ...WEAPONS[shuffledWeapons[i]] });
+            const armorNames = Object.keys(ARMORS);
+            const shuffledArmors = [...armorNames];
+            for (let i = shuffledArmors.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [shuffledArmors[i], shuffledArmors[j]] = [shuffledArmors[j], shuffledArmors[i]]; }
+            for (let i = 0; i < Math.min(3, shuffledArmors.length); i++) shopItems.push({ type: "armor", name: shuffledArmors[i], ...ARMORS[shuffledArmors[i]] });
+            const ringNames = Object.keys(RINGS);
+            const shuffledRings = [...ringNames];
+            for (let i = shuffledRings.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [shuffledRings[i], shuffledRings[j]] = [shuffledRings[j], shuffledRings[i]]; }
+            for (let i = 0; i < Math.min(3, shuffledRings.length); i++) shopItems.push({ type: "ring", name: shuffledRings[i], ...RINGS[shuffledRings[i]] });
+            const shuffledPotions = [...POTIONS];
+            for (let i = shuffledPotions.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [shuffledPotions[i], shuffledPotions[j]] = [shuffledPotions[j], shuffledPotions[i]]; }
+            for (let i = 0; i < Math.min(2, shuffledPotions.length); i++) shopItems.push({ type: "potion", ...shuffledPotions[i] });
+            showNotification(`🔄 МАГАЗИН ОБНОВЛЁН! ЗАЙДИ ПОСМОТРЕТЬ!`);
+        }
+    }
+    
+    function loadShop() {
+        updateShop();
+        updateShopTimer();
+        setInterval(updateShopTimer, 1000);
+        showPanel('shop');
+        const grid = document.getElementById('shopGrid');
+        grid.innerHTML = '';
+        for (const item of shopItems) {
+            const div = document.createElement('div');
+            div.className = 'shop-item';
+            div.onclick = () => buyItem(item);
+            div.innerHTML = `
+                <span class="shop-item-emoji">${item.emoji || '📦'}</span>
+                <div class="shop-item-name">${item.name}</div>
+                <div class="shop-item-stats">${item.desc || (item.atk ? `+${item.atk} ⚔️` : item.def ? `+${item.def} 🛡️` : '')}</div>
+                <div class="shop-item-price">💰 ${item.price} 🪙</div>
+            `;
+            grid.appendChild(div);
+        }
+    }
+    
+    function buyItem(item) {
+        if (player.gold >= item.price) {
+            player.gold -= item.price;
+            if (item.type === 'weapon') { player.weapon = item.name; showNotification(`✅ КУПЛЕНО ${item.name}! +${item.atk} АТАКИ!`); }
+            else if (item.type === 'armor') { player.armor = item.name; showNotification(`✅ КУПЛЕНО ${item.name}! +${item.def} ЗАЩИТЫ!`); }
+            else if (item.type === 'ring') { player.ring = item.name; showNotification(`✅ КУПЛЕНО ${item.name}! +${item.atk} АТАКИ!`); }
+            else if (item.type === 'potion') {
+                if (item.effect === 'heal') { player.hp = Math.min(player.hp + item.value, player.maxHp); showNotification(`💚 ВОССТАНОВЛЕНО ${item.value} HP!`); }
+                else if (item.effect === 'mana') { player.mana = Math.min(player.mana + item.value, player.maxMana); showNotification(`💙 ВОССТАНОВЛЕНО ${item.value} МАНЫ!`); }
+            }
+            updateUI();
+            saveGame();
+            loadShop();
+        } else { showNotification(`❌ НЕДОСТАТОЧНО ЗОЛОТА! НУЖНО ${item.price} 🪙`, true); }
+    }
+    
+    function showPanel(panel) {
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        if (panel === 'battle') {
+            document.getElementById('battlePanel').classList.add('active');
+            document.querySelectorAll('.nav-btn')[0].classList.add('active');
+        } else if (panel === 'shop') {
+            document.getElementById('shopPanel').classList.add('active');
+            document.querySelectorAll('.nav-btn')[1].classList.add('active');
+        } else if (panel === 'hero') {
+            document.getElementById('heroPanel').classList.add('active');
+            document.querySelectorAll('.nav-btn')[2].classList.add('active');
+        }
+    }
+    
+    // Запуск игры
+    startNewBattle();
+    updateUI();
+    saveGame();
+</script>
+<!-- АУДИО ПЛЕЕР -->
+<div style="position: fixed; bottom: 20px; right: 20px; z-index: 1000;">
+    <button id="musicToggle" style="background: rgba(0,0,0,0.8); border: 2px solid #00aaff; border-radius: 50px; padding: 12px 20px; color: #00aaff; cursor: pointer; font-family: monospace; backdrop-filter: blur(10px);">
+        🎵 ВКЛЮЧИТЬ МУЗЫКУ
+    </button>
+</div>
+
+<script>
+    // ==================== МУЗЫКАЛЬНАЯ СИСТЕМА ====================
+    let audio = null;
+    let isPlaying = false;
+    let currentTrack = 0;
+    const musicList = ['songs/1.mp3', 'songs/2.mp3', 'songs/3.mp3', 'songs/4.mp3'];
+    
+    function initMusic() {
+        if (!audio) {
+            audio = new Audio();
+            audio.volume = 0.3;
+            audio.addEventListener('ended', nextTrack);
+        }
+    }
+    
+    function nextTrack() {
+        currentTrack = (currentTrack + 1) % musicList.length;
+        if (isPlaying) {
+            audio.src = musicList[currentTrack];
+            audio.play().catch(e => console.log('Audio error:', e));
+            document.getElementById('musicToggle').innerHTML = `🎵 ТРЕК ${currentTrack + 1}/4 🎵`;
+        }
+    }
+    
+    function toggleMusic() {
+        initMusic();
+        const btn = document.getElementById('musicToggle');
+        
+        if (isPlaying) {
+            audio.pause();
+            isPlaying = false;
+            btn.innerHTML = '🎵 ВКЛЮЧИТЬ МУЗЫКУ';
+            btn.style.color = '#00aaff';
+        } else {
+            audio.src = musicList[currentTrack];
+            audio.play().catch(e => {
+                console.log('Play error:', e);
+                btn.innerHTML = '❌ НЕЛЬЗЯ ВОСПРОИЗВЕСТИ';
+                setTimeout(() => {
+                    btn.innerHTML = '🎵 ВКЛЮЧИТЬ МУЗЫКУ';
+                }, 2000);
+            });
+            isPlaying = true;
+            btn.innerHTML = `🎵 ТРЕК ${currentTrack + 1}/4 🎵`;
+            btn.style.color = '#ffaa00';
+        }
+    }
+    
+    document.getElementById('musicToggle').onclick = toggleMusic;
+</script>
+</body>
+</html>
